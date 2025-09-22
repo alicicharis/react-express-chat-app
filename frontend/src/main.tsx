@@ -13,7 +13,7 @@ createRoot(document.getElementById("root")!).render(
       {/* <StrictMode> */}
       <Routes>
         <Route path="/" element={<Auth />} />
-        <Route path="/chat" element={<App />} />
+        <Route path="/chat/:chatId" element={<App />} />
         <Route path="/chats" element={<Chats />} />
       </Routes>
       {/* </StrictMode> */}

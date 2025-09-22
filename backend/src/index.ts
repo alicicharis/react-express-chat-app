@@ -1,6 +1,9 @@
 import express from "express";
 import { WebSocketServer, WebSocket } from "ws";
 import { createServer } from "http";
+import { db } from "./db";
+import { chatMembers, chats, users } from "./db/schema";
+import { asc, eq } from "drizzle-orm";
 
 const app = express();
 const server = createServer(app);
@@ -25,16 +28,51 @@ const MESSAGES: Message[] = [
   { id: 8, message: "My name is John!", userId: "2" },
 ];
 
-wss.on("connection", (ws: WebSocket) => {
+wss.on("connection", async (ws: WebSocket, req: Request) => {
   console.log("New WebSocket connection established");
 
-  ws.send(JSON.stringify(MESSAGES));
+  const rawQuery = (req.url || "").split("?")[1] || "";
+  const params = new URLSearchParams(rawQuery);
+
+  const route = params.get("route");
+  const userId = params.get("userId");
+
+  console.log("USER ID: ", userId);
+
+  if (route === "chats" && userId) {
+    const chatsForUser = db
+      .select({ chatId: chatMembers.chatId })
+      .from(chatMembers)
+      .where(eq(chatMembers.userId, userId))
+      .as("convs_for_user");
+
+    // main query
+    const chatsData = await db
+      .select({
+        chatId: chats.id,
+        memberId: users.id,
+        name: users.name,
+      })
+      .from(chats)
+      .innerJoin(chatMembers, eq(chatMembers.chatId, chats.id))
+      .innerJoin(users, eq(users.id, chatMembers.userId))
+      .innerJoin(chatsForUser, eq(chatsForUser.chatId, chats.id))
+      .orderBy(asc(chats.id), asc(users.id));
+
+    ws.send(
+      JSON.stringify({
+        data: chatsData?.filter((chat) => chat.memberId !== userId),
+        type: "chats",
+      })
+    );
+  }
+
+  console.log("Route: ", route);
 
   ws.on("message", (data: Buffer) => {
     try {
       const message = JSON.parse(data.toString());
       console.log("Received message:", message);
-
       MESSAGES.push(message);
 
       ws.send(JSON.stringify(MESSAGES));

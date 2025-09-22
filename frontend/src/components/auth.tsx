@@ -1,4 +1,5 @@
 import { useCookies } from "react-cookie";
+import { Link } from "react-router";
 
 export default function Auth() {
   // dummy auth
@@ -55,8 +56,8 @@ export default function Auth() {
           </div>
 
           {cookies.user && (
-            <a
-              href="/chat"
+            <Link
+              to="/chat"
               className="block w-full text-center bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-3 px-6 rounded-xl transition-colors duration-200 border border-slate-200 hover:border-slate-300"
             >
               <div className="flex items-center justify-center gap-2">
@@ -75,7 +76,7 @@ export default function Auth() {
                 </svg>
                 Go to Chat
               </div>
-            </a>
+            </Link>
           )}
         </div>
 

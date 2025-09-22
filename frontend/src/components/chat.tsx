@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useCookies } from "react-cookie";
+import { useParams } from "react-router";
 
 type Message = {
   id: number;
@@ -11,6 +12,9 @@ type Message = {
 
 export default function Chat() {
   const [cookies] = useCookies(["user"]);
+  const { chatId } = useParams();
+
+  console.log("CHAT ID: ", chatId);
 
   const [isConnected, setIsConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
@@ -19,7 +23,7 @@ export default function Chat() {
   const [messages, setMessages] = useState<Message[]>([]);
 
   useEffect(() => {
-    const ws = new WebSocket("ws://localhost:3001");
+    const ws = new WebSocket("ws://localhost:3001?route=chat&chatId=" + chatId);
     wsRef.current = ws;
 
     ws.onopen = () => {
@@ -71,7 +75,7 @@ export default function Chat() {
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 h-[90vh] rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 flex flex-col overflow-hidden">
+    <div className="w-full max-w-md mx-auto bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 h-[90vh] rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 flex flex-col overflow-hidden">
       {/* Header */}
       <div className="bg-white dark:bg-slate-800 px-6 py-4 border-b border-slate-200 dark:border-slate-700">
         <div className="flex items-center justify-between">
