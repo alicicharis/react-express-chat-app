@@ -8,28 +8,36 @@ const wss = new WebSocketServer({ server });
 
 const PORT = process.env.PORT || 3001;
 
+type Message = {
+  id: number;
+  message: string;
+  userId: string;
+};
+
+const MESSAGES: Message[] = [
+  { id: 1, message: "Hello, how are you?", userId: "1" },
+  { id: 2, message: "I'm fine, thank you!", userId: "2" },
+  { id: 3, message: "What's your name?", userId: "1" },
+  { id: 4, message: "My name is John!", userId: "2" },
+  { id: 5, message: "What's your name?", userId: "1" },
+  { id: 6, message: "My name is John!", userId: "2" },
+  { id: 7, message: "What's your name?", userId: "1" },
+  { id: 8, message: "My name is John!", userId: "2" },
+];
+
 wss.on("connection", (ws: WebSocket) => {
   console.log("New WebSocket connection established");
 
-  ws.send(
-    JSON.stringify({
-      type: "welcome",
-      message: "Connected to WebSocket server!",
-    })
-  );
+  ws.send(JSON.stringify(MESSAGES));
 
   ws.on("message", (data: Buffer) => {
     try {
       const message = JSON.parse(data.toString());
       console.log("Received message:", message);
 
-      ws.send(
-        JSON.stringify({
-          type: "echo",
-          originalMessage: message,
-          timestamp: new Date().toISOString(),
-        })
-      );
+      MESSAGES.push(message);
+
+      ws.send(JSON.stringify(MESSAGES));
     } catch (error) {
       console.error("Error parsing message:", error);
       ws.send(
