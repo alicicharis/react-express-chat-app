@@ -8,14 +8,10 @@ import { getChatMessages, getUserRooms } from "./db/data";
 
 const app = express();
 
-// Parse JSON bodies (Express built-in middleware)
-app.use(express.json());
-
-// Parse URL-encoded bodies (Express built-in middleware)
-app.use(express.urlencoded({ extended: true }));
 const server = createServer(app);
 
-// Configure CORS for Express
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(
   cors({
     origin: "http://localhost:5173",
@@ -51,24 +47,8 @@ app.get("/messages/:roomId", async (req: Request, res: Response) => {
   res.status(200).json({ data: messages });
 });
 
-// Simple test endpoint without authentication
-app.post("/test", (req: Request, res: Response) => {
-  console.log("=== TEST ENDPOINT ===");
-  console.log("Body:", req.body);
-  console.log("Body type:", typeof req.body);
-  console.log("Headers:", req.headers);
-  res.status(200).json({
-    message: "Test successful",
-    receivedBody: req.body,
-    bodyType: typeof req.body,
-  });
-});
-
 app.post("/messages", async (req: Request, res: Response) => {
   const userId = req?.headers?.authorization?.split(" ")[1];
-
-  console.log("Srw user id: ", userId);
-  console.log("Req body: ", req.body);
 
   const messageCreatePayload = {
     id: Math.random().toString(36).substring(2, 15),

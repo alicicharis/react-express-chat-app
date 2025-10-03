@@ -1,27 +1,25 @@
-// import { StrictMode } from "react";
+import { StrictMode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { CookiesProvider } from "react-cookie";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter, Route, Routes } from "react-router";
-import Auth from "./components/auth.tsx";
-import Chat from "./components/chat.tsx";
-import Chats from "./components/chats.tsx";
+import { BrowserRouter } from "react-router";
+import App from "./App.tsx";
 import "./index.css";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5,
+      retry: 1,
+    },
+  },
+});
 
 createRoot(document.getElementById("root")!).render(
-  <CookiesProvider>
+  <StrictMode>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        {/* <StrictMode> */}
-        <Routes>
-          <Route path="/" element={<Auth />} />
-          <Route path="/chat/:roomId" element={<Chat />} />
-          <Route path="/chats" element={<Chats />} />
-        </Routes>
-        {/* </StrictMode> */}
+        <App />
       </BrowserRouter>
     </QueryClientProvider>
-  </CookiesProvider>
+  </StrictMode>
 );

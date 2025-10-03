@@ -1,26 +1,25 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import Cookies from "js-cookie";
 import { useEffect, useRef, useState } from "react";
-import { useCookies } from "react-cookie";
 import { Link, useParams } from "react-router";
 import { apiClient } from "../lib/api";
 import { socket } from "../lib/socket";
 import type { Message } from "../types";
 
 export default function Chat() {
-  const [cookies] = useCookies(["user"]);
   const { roomId } = useParams();
-  const userId = cookies.user.toString();
+  const userId = Cookies.get("user");
 
   const queryClient = useQueryClient();
 
   const { data: messages } = useQuery({
     queryKey: ["messages", roomId],
-    queryFn: () => apiClient.getMessages(userId, roomId || ""),
+    queryFn: () => apiClient.getMessages(roomId || ""),
   });
 
   const { mutate: createMessage } = useMutation({
     mutationFn: (messageData: { content: string; roomId: string }) =>
-      apiClient.createMessage(userId, messageData),
+      apiClient.createMessage(messageData),
     onSuccess: (data) => {
       queryClient.setQueryData(["messages", roomId], (oldData: Message[]) => [
         ...oldData,

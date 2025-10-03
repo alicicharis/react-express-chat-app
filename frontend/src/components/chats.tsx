@@ -1,12 +1,12 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import Cookies from "js-cookie";
 import { useEffect, useState } from "react";
-import { useCookies } from "react-cookie";
 import { Link } from "react-router";
 import { apiClient } from "../lib/api";
 import { socket } from "../lib/socket";
 
 export default function Chats() {
-  const [cookies] = useCookies(["user"]);
+  const userId = Cookies.get("user");
 
   const queryClient = useQueryClient();
   const {
@@ -15,7 +15,7 @@ export default function Chats() {
     error,
   } = useQuery({
     queryKey: ["rooms"],
-    queryFn: () => apiClient.getRooms(cookies.user),
+    queryFn: () => apiClient.getRooms(),
   });
 
   const [isConnected, setIsConnected] = useState(false);
@@ -39,7 +39,7 @@ export default function Chats() {
       socket.off("disconnect", onDisconnect);
       socket.disconnect();
     };
-  }, [cookies.user]);
+  }, [userId]);
 
   return (
     <main className="flex justify-center items-center h-screen">

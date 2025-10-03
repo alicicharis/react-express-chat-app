@@ -1,4 +1,5 @@
 import type { Message, Room } from "../types";
+import Cookies from "js-cookie";
 
 export interface ApiResponse<T> {
   data: T;
@@ -101,46 +102,43 @@ class ApiClient {
     }
   }
 
-  private getAuthHeaders(userId: string): Record<string, string> {
+  private getAuthHeaders(): Record<string, string> {
     return {
-      Authorization: `Bearer ${userId}`,
+      Authorization: `Bearer ${Cookies.get("user")}`,
       "Content-Type": "application/json",
     };
   }
 
-  public async getRooms(userId: string): Promise<Room[]> {
+  public async getRooms(): Promise<Room[]> {
     const response = await this.request<Room[]>("/rooms", {
-      headers: this.getAuthHeaders(userId),
+      headers: this.getAuthHeaders(),
     });
     return response.data;
   }
 
-  public async createRoom(
-    userId: string,
-    roomData: { name: string }
-  ): Promise<Room> {
+  public async createRoom(roomData: { name: string }): Promise<Room> {
     const response = await this.request<Room>("/rooms", {
       method: "POST",
-      headers: this.getAuthHeaders(userId),
+      headers: this.getAuthHeaders(),
       body: JSON.stringify(roomData),
     });
     return response.data;
   }
 
-  public async getMessages(userId: string, roomId: string): Promise<Message[]> {
+  public async getMessages(roomId: string): Promise<Message[]> {
     const response = await this.request<Message[]>("/messages/" + roomId, {
-      headers: this.getAuthHeaders(userId),
+      headers: this.getAuthHeaders(),
     });
     return response.data;
   }
 
-  public async createMessage(
-    userId: string,
-    messageData: { content: string; roomId: string }
-  ): Promise<Message> {
+  public async createMessage(messageData: {
+    content: string;
+    roomId: string;
+  }): Promise<Message> {
     const response = await this.request<Message>("/messages", {
       method: "POST",
-      headers: this.getAuthHeaders(userId),
+      headers: this.getAuthHeaders(),
       body: JSON.stringify(messageData),
     });
 
