@@ -1,102 +1,112 @@
-import express from "express";
-import { WebSocketServer, WebSocket } from "ws";
+import cors from "cors";
+import express, { Request, Response } from "express";
 import { createServer } from "http";
+import { Server } from "socket.io";
 import { db } from "./db";
-import { chatMembers, chats, users } from "./db/schema";
-import { asc, eq } from "drizzle-orm";
+import { messages } from "./db/schema";
+import { getChatMessages, getUserRooms } from "./db/data";
 
 const app = express();
+
+// Parse JSON bodies (Express built-in middleware)
+app.use(express.json());
+
+// Parse URL-encoded bodies (Express built-in middleware)
+app.use(express.urlencoded({ extended: true }));
 const server = createServer(app);
-const wss = new WebSocketServer({ server });
 
-const PORT = process.env.PORT || 3001;
+// Configure CORS for Express
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true,
+  })
+);
 
-type Message = {
-  id: number;
-  message: string;
-  userId: string;
-};
+const io = new Server(server, {
+  cors: {
+    origin: "http://localhost:5173",
+    methods: ["GET", "POST"],
+  },
+});
 
-const MESSAGES: Message[] = [
-  { id: 1, message: "Hello, how are you?", userId: "1" },
-  { id: 2, message: "I'm fine, thank you!", userId: "2" },
-  { id: 3, message: "What's your name?", userId: "1" },
-  { id: 4, message: "My name is John!", userId: "2" },
-  { id: 5, message: "What's your name?", userId: "1" },
-  { id: 6, message: "My name is John!", userId: "2" },
-  { id: 7, message: "What's your name?", userId: "1" },
-  { id: 8, message: "My name is John!", userId: "2" },
-];
+app.get("/rooms", async (req: Request, res: Response) => {
+  const userId = req?.headers?.authorization?.split(" ")[1];
 
-wss.on("connection", async (ws: WebSocket, req: Request) => {
-  console.log("New WebSocket connection established");
-
-  const rawQuery = (req.url || "").split("?")[1] || "";
-  const params = new URLSearchParams(rawQuery);
-
-  const route = params.get("route");
-  const userId = params.get("userId");
-
-  console.log("USER ID: ", userId);
-
-  if (route === "chats" && userId) {
-    const chatsForUser = db
-      .select({ chatId: chatMembers.chatId })
-      .from(chatMembers)
-      .where(eq(chatMembers.userId, userId))
-      .as("convs_for_user");
-
-    // main query
-    const chatsData = await db
-      .select({
-        chatId: chats.id,
-        memberId: users.id,
-        name: users.name,
-      })
-      .from(chats)
-      .innerJoin(chatMembers, eq(chatMembers.chatId, chats.id))
-      .innerJoin(users, eq(users.id, chatMembers.userId))
-      .innerJoin(chatsForUser, eq(chatsForUser.chatId, chats.id))
-      .orderBy(asc(chats.id), asc(users.id));
-
-    ws.send(
-      JSON.stringify({
-        data: chatsData?.filter((chat) => chat.memberId !== userId),
-        type: "chats",
-      })
-    );
+  if (!userId) {
+    res.status(403).json({ error: "Unauthorized" });
+    return;
   }
 
-  console.log("Route: ", route);
+  const rooms = await getUserRooms(userId);
 
-  ws.on("message", (data: Buffer) => {
-    try {
-      const message = JSON.parse(data.toString());
-      console.log("Received message:", message);
-      MESSAGES.push(message);
+  res.status(200).json({ data: rooms });
+});
 
-      ws.send(JSON.stringify(MESSAGES));
-    } catch (error) {
-      console.error("Error parsing message:", error);
-      ws.send(
-        JSON.stringify({
-          type: "error",
-          message: "Invalid JSON format",
-        })
-      );
-    }
-  });
+app.get("/messages/:roomId", async (req: Request, res: Response) => {
+  const roomId = req.params.roomId;
+  const messages = await getChatMessages(roomId);
 
-  ws.on("close", () => {
-    console.log("WebSocket connection closed");
-  });
+  res.status(200).json({ data: messages });
+});
 
-  ws.on("error", (error) => {
-    console.error("WebSocket error:", error);
+// Simple test endpoint without authentication
+app.post("/test", (req: Request, res: Response) => {
+  console.log("=== TEST ENDPOINT ===");
+  console.log("Body:", req.body);
+  console.log("Body type:", typeof req.body);
+  console.log("Headers:", req.headers);
+  res.status(200).json({
+    message: "Test successful",
+    receivedBody: req.body,
+    bodyType: typeof req.body,
   });
 });
 
-server.listen(PORT, () => {
-  console.log(`WebSocket server running on port ${PORT}`);
-  console.log(`WebSocket endpoint: ws://localhost:${PORT}`);
+app.post("/messages", async (req: Request, res: Response) => {
+  const userId = req?.headers?.authorization?.split(" ")[1];
+
+  console.log("Srw user id: ", userId);
+  console.log("Req body: ", req.body);
+
+  const messageCreatePayload = {
+    id: Math.random().toString(36).substring(2, 15),
+    content: req.body.content,
+    userId: userId,
+    roomId: req.body.roomId,
+  };
+
+  const messageCreateRes = await db
+    .insert(messages)
+    .values(messageCreatePayload)
+    .returning();
+
+  // emit event to send message data to connected clients
+  io.to(req.body.roomId).emit("chat-message", messageCreateRes[0]);
+
+  try {
+    res.status(201).json({ data: messageCreateRes[0] });
+  } catch (err) {
+    console.log("Error creating message: ", err);
+    res.status(500).send("Error creating message");
+  }
+});
+
+io.on("connection", (socket) => {
+  console.log("a user connected");
+
+  socket.on("join-room", (roomId) => {
+    console.log("Joining room: ", roomId);
+    socket.join(roomId);
+  });
+  // socket.on("chat-message", (data) => {
+  //   console.log("chat-message", data);
+  //   socket.emit("chat-message", { message: "Hello from server!" });
+  // });
+});
+
+server.listen(3000, () => {
+  console.log(`WebSocket server running on port 3000`);
+  console.log(`WebSocket endpoint: ws://localhost:3000`);
 });

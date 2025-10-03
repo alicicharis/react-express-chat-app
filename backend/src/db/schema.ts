@@ -1,11 +1,5 @@
 import { pgEnum, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
-export const messageStatusEnum = pgEnum("message_status", [
-  "sent",
-  "delivered",
-  "read",
-]);
-
 export const users = pgTable("users", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
@@ -13,43 +7,25 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const chats = pgTable("chats", {
+export const rooms = pgTable("rooms", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
+  ownerId: text("owner_id").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const chatMembers = pgTable("chat_members", {
+export const room_members = pgTable("room_members", {
   id: text("id").primaryKey(),
-  chatId: text("chat_id")
-    .notNull()
-    .references(() => chats.id),
-  userId: text("user_id")
-    .notNull()
-    .references(() => users.id),
+  userId: text("user_id").references(() => users.id),
+  roomId: text("room_id").references(() => rooms.id),
 });
 
 export const messages = pgTable("messages", {
   id: text("id").primaryKey(),
-  message: text("message").notNull(),
-  chatId: text("chat_id")
-    .notNull()
-    .references(() => chats.id),
-  userId: text("user_id")
-    .notNull()
-    .references(() => users.id),
+  content: text("content").notNull(),
+  roomId: text("room_id").references(() => rooms.id),
+  userId: text("user_id").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
-
-export const messageStatuses = pgTable("message_statuses", {
-  id: text("id").primaryKey(),
-  messageId: text("message_id")
-    .notNull()
-    .references(() => messages.id),
-  userId: text("user_id")
-    .notNull()
-    .references(() => users.id),
-  status: messageStatusEnum().default("sent"),
 });
