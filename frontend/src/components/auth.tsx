@@ -1,8 +1,14 @@
 import Cookies from "js-cookie";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 
 export default function Auth() {
   const userId = Cookies.get("user");
+  const navigate = useNavigate();
+
+  const userCookieHandler = (userId: string) => {
+    Cookies.set("user", userId);
+    navigate("/chats");
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex justify-center items-center p-4">
@@ -29,7 +35,7 @@ export default function Auth() {
           <div className="space-y-4 mb-6">
             <button
               className="w-full group relative overflow-hidden rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold py-4 px-6 transition-all duration-200 transform hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]"
-              onClick={() => Cookies.set("user", "1")}
+              onClick={() => userCookieHandler("1")}
             >
               <div className="flex items-center justify-center gap-3">
                 <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
@@ -42,7 +48,7 @@ export default function Auth() {
 
             <button
               className="w-full group relative overflow-hidden rounded-xl bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-semibold py-4 px-6 transition-all duration-200 transform hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]"
-              onClick={() => Cookies.set("user", "2")}
+              onClick={() => userCookieHandler("2")}
             >
               <div className="flex items-center justify-center gap-3">
                 <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">

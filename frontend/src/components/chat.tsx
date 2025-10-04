@@ -20,12 +20,6 @@ export default function Chat() {
   const { mutate: createMessage } = useMutation({
     mutationFn: (messageData: { content: string; roomId: string }) =>
       apiClient.createMessage(messageData),
-    onSuccess: (data) => {
-      queryClient.setQueryData(["messages", roomId], (oldData: Message[]) => [
-        ...oldData,
-        data,
-      ]);
-    },
   });
 
   const [isConnected, setIsConnected] = useState(false);
@@ -54,12 +48,22 @@ export default function Chat() {
       setIsConnected(false);
     }
 
+    function onChatMessage(data: Message) {
+      console.log("new chat message: ", data);
+      queryClient.setQueryData(["messages", roomId], (oldData: Message[]) => [
+        ...oldData,
+        data,
+      ]);
+    }
+
     socket.on("connect", onConnect);
     socket.on("disconnect", onDisconnect);
+    socket.on("chat-message", onChatMessage);
 
     return () => {
       socket.off("connect", onConnect);
       socket.off("disconnect", onDisconnect);
+      socket.off("chat-message", onChatMessage);
       socket.disconnect();
     };
   }, [userId]);
